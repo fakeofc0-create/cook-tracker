@@ -1,0 +1,130 @@
+// Inside your build method...
+
+Padding(
+  padding: const EdgeInsets.all(16.0),
+  child: Column(
+    // 1. THIS FIXES THE ALIGNMENT
+    // It forces all children to stretch to the edges of the padding
+    crossAxisAlignment: CrossAxisAlignment.stretch, 
+    children: [
+      
+      // --- SECTION 1: SUMMARY BOXES (Visits & Amount) ---
+      Row(
+        children: [
+          // Box 1: Total Visits
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.teal.shade50, // Light background color
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.teal.shade100),
+              ),
+              child: Column(
+                children: [
+                  const Text("Total Visits", style: TextStyle(fontSize: 12, color: Colors.grey)),
+                  const SizedBox(height: 4),
+                  Text(
+                    "24", // Replace with variable: $totalVisits
+                    style: const TextStyle(
+                      fontSize: 20, 
+                      fontWeight: FontWeight.bold, // BOLD as requested
+                      color: Colors.teal,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          
+          const SizedBox(width: 12), // Space between boxes
+          
+          // Box 2: Total Amount
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.teal.shade50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.teal.shade100),
+              ),
+              child: Column(
+                children: [
+                  const Text("Total Amount", style: TextStyle(fontSize: 12, color: Colors.grey)),
+                  const SizedBox(height: 4),
+                  Text(
+                    "₹ 4,500", // Replace with variable: $totalAmount
+                    style: const TextStyle(
+                      fontSize: 20, 
+                      fontWeight: FontWeight.bold, // BOLD as requested
+                      color: Colors.teal,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+
+      const SizedBox(height: 16),
+
+      // --- SECTION 2: MONTH DROPDOWN (Aligned) ---
+      // Wrapped in a Container to match the style of the other boxes
+      Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey.shade300), // Border to match alignment visual
+        ),
+        child: DropdownButtonHideUnderline(
+          child: DropdownButton<String>(
+            isExpanded: true, // Important for alignment
+            value: "November 2025", // Replace with your variable
+            items: ["October 2025", "November 2025", "December 2025"]
+                .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                .toList(),
+            onChanged: (val) {},
+          ),
+        ),
+      ),
+
+      const SizedBox(height: 16),
+
+      // --- SECTION 3: COOK CAME TODAY (Small Box) ---
+      Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10), // Small padding
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey.shade300),
+          boxShadow: [
+             BoxShadow(
+               color: Colors.grey.withOpacity(0.1),
+               blurRadius: 5,
+               offset: const Offset(0, 2),
+             )
+          ]
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              "Cook Came Today?",
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
+            Transform.scale(
+              scale: 0.9,
+              child: Checkbox(
+                value: true, // Replace with your variable
+                activeColor: Colors.teal,
+                onChanged: (val) {},
+              ),
+            ),
+          ],
+        ),
+      ),
+    ],
+  ),
+)
