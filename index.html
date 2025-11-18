@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cook Tracker</title>
+    <style>
+        body { font-family: sans-serif; background-color: #f0f2f5; padding: 20px; margin: 0; }
+        .container { max-width: 400px; margin: 0 auto; background: white; border-radius: 15px; padding: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        h2 { text-align: center; margin-top: 0; color: #333; }
+        
+        label { display: block; margin-bottom: 5px; font-weight: bold; color: #555; }
+        input[type="date"] { font-size: 18px; padding: 10px; width: 100%; border: 2px solid #ddd; border-radius: 8px; text-align: center; margin-bottom: 20px;}
+
+        .btn-group { display: flex; gap: 10px; margin-bottom: 30px; }
+        button { flex: 1; padding: 15px; font-size: 18px; border: none; border-radius: 8px; font-weight: bold; }
+        .btn-yes { background-color: #e8f5e9; color: #2e7d32; border: 2px solid #2e7d32; }
+        .btn-no { background-color: #ffebee; color: #c62828; border: 2px solid #c62828; }
+        .btn-yes.active { background-color: #2e7d32; color: white; }
+        .btn-no.active { background-color: #c62828; color: white; }
+
+        .summary-card { background: linear-gradient(135deg, #007bff, #0056b3); color: white; padding: 20px; border-radius: 12px; text-align: center; }
+        .big-total { font-size: 32px; font-weight: bold; margin: 5px 0; }
+        
+        .history { margin-top: 25px; }
+        .history-list { list-style: none; padding: 0; }
+        .history-item { padding: 8px 0; border-bottom: 1px solid #f0f0f0; display: flex; justify-content: space-between; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>👩‍🍳 Cook Tracker</h2>
+
+    <label>Select Date</label>
+    <input type="date" id="datePicker">
+
+    <label style="text-align: center;">Did the Cook come?</label>
+    <div class="btn-group">
+        <button class="btn-yes" id="btnYes" onclick="markAttendance(true)">YES</button>
+        <button class="btn-no" id="btnNo" onclick="markAttendance(false)">NO</button>
+    </div>
+
+    <div class="summary-card">
+        <div>Total Bill: <span id="displayMonth">Month</span></div>
+        <div class="big-total">₹<span id="totalCost">0</span></div>
+        <div><span id="daysCount">0</span> days present</div>
+    </div>
+
+    <div class="history">
+        <h3>Visited Dates</h3>
+        <ul class="history-list" id="historyList"></ul>
+    </div>
+</div>
+
+<script>
+    const COST_PER_DAY = 100;
+    const datePicker = document.getElementById('datePicker');
+    const btnYes = document.getElementById('btnYes');
+    const btnNo = document.getElementById('btnNo');
+    let data = JSON.parse(localStorage.getItem('cookData')) || {};
+    datePicker.valueAsDate = new Date();
+    datePicker.addEventListener('change', updateUI);
+
+    function markAttendance(isPresent) {
+        const date = datePicker.value;
+        if (isPresent) data[date] = 'present';
+        else delete data[date]; 
+        localStorage.setItem('cookData', JSON.stringify(data));
+        updateUI();
+    }
+
+    function updateUI() {
+        const selectedDate = datePicker.value;
+        const selectedMonth = selectedDate.substring(0, 7); 
+        
+        btnYes.className = (data[selectedDate] === 'present') ? 'btn-yes active' : 'btn-yes';
+        btnNo.className = (!data[selectedDate]) ? 'btn-no active' : 'btn-no';
+
+        let monthlyCount = 0;
+        const historyList = document.getElementById('historyList');
+        historyList.innerHTML = ''; 
+
+        Object.keys(data).sort().reverse().forEach(date => {
+            if (date.startsWith(selectedMonth)) {
+                monthlyCount++;
+                const li = document.createElement('li');
+                li.className = 'history-item';
+                li.innerHTML = `<span>${date}</span> <span style="color:green">Visited</span>`;
+                historyList.appendChild(li);
+            }
+        });
+
+        const monthName = new Date(selectedDate).toLocaleString('default', { month: 'long' });
+        document.getElementById('displayMonth').innerText = monthName;
+        document.getElementById('daysCount').innerText = monthlyCount;
+        document.getElementById('totalCost').innerText = monthlyCount * COST_PER_DAY;
+    }
+    updateUI();
+</script>
+</body>
+</html>
