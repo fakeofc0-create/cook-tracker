@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Cook Tracker</title>
     <style>
         /* General Styles */
@@ -13,6 +13,8 @@
             display: flex;
             justify-content: center;
             min-height: 100vh;
+            /* Prevent blue highlight on tap */
+            -webkit-tap-highlight-color: transparent; 
         }
 
         .main-container {
@@ -23,6 +25,8 @@
             padding: 20px;
             box-sizing: border-box;
             box-shadow: 0 0 20px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
         }
 
         h1 {
@@ -50,7 +54,9 @@
             justify-content: space-between; 
             align-items: center;
             margin-bottom: 20px;
-            position: relative; 
+            position: relative;
+            /* Ensure it doesn't overlap other items */
+            z-index: 1; 
         }
 
         .arrow-icon { color: #999; font-size: 12px; pointer-events: none; }
@@ -58,19 +64,34 @@
         .hidden-input {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             opacity: 0; cursor: pointer;
+            z-index: 2; /* Sits on top of the text inside the box */
         }
 
-        /* --- COOK STATUS CARD (TOGGLE STYLE) --- */
+        /* --- COOK STATUS BUTTON (Fixed) --- */
         .status-card {
-            /* DEFAULT STATE (Not Present) */
+            /* Reset Button Styles */
+            appearance: none;
+            border: none;
+            font-family: inherit;
+            width: 100%; /* Full width */
+            
+            /* Custom Styles */
             background-color: #fafafa; 
-            border: 2px dashed #e0e0e0; /* Dashed border means "Click me" */
+            border: 2px dashed #e0e0e0; 
             border-radius: 16px;
             padding: 15px; 
             text-align: center;
             margin-bottom: 30px;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: all 0.1s ease;
+            position: relative;
+            z-index: 5; /* High Z-Index to ensure it catches clicks */
+        }
+
+        /* Pressed effect */
+        .status-card:active {
+            transform: scale(0.98);
+            background-color: #f0f0f0;
         }
 
         .status-card .check-icon {
@@ -80,7 +101,7 @@
             border-radius: 8px;
             display: inline-flex; align-items: center; justify-content: center;
             font-size: 24px; margin-bottom: 8px;
-            transition: all 0.2s;
+            pointer-events: none; /* Click passes through icon to button */
         }
 
         .status-card .status-text {
@@ -88,23 +109,18 @@
             font-weight: 600;
             font-size: 16px;
             display: block;
+            pointer-events: none;
         }
 
-        /* ACTIVE STATE (When Class 'active' is added) */
+        /* ACTIVE STATE (Green) */
         .status-card.active {
-            background-color: #e8f5e9; /* Light Green */
-            border: 2px solid #4caf50; /* Solid Green Border */
+            background-color: #e8f5e9; 
+            border: 2px solid #4caf50; 
             box-shadow: 0 4px 12px rgba(76, 175, 80, 0.2);
         }
 
-        .status-card.active .check-icon {
-            background-color: #4caf50;
-        }
-
-        .status-card.active .status-text {
-            color: #2e7d32;
-            font-weight: 700;
-        }
+        .status-card.active .check-icon { background-color: #4caf50; }
+        .status-card.active .status-text { color: #2e7d32; font-weight: 700; }
 
         /* --- SUMMARY SECTION --- */
         .section-title {
@@ -112,9 +128,7 @@
             color: #9e9e9e; margin-bottom: 10px; text-transform: uppercase;
         }
 
-        .summary-grid {
-            display: flex; gap: 15px; margin-bottom: 30px;
-        }
+        .summary-grid { display: flex; gap: 15px; margin-bottom: 30px; }
 
         .summary-box {
             flex: 1; border-radius: 16px; padding: 15px; color: white;
@@ -130,13 +144,23 @@
         .unit { font-size: 14px; font-weight: 400; opacity: 0.8; }
 
         /* --- HISTORY LIST --- */
+        .history-list { flex-grow: 1; } /* Pushes content down */
+        
         .history-item {
             display: flex; justify-content: space-between; align-items: center;
             padding: 15px 0; border-bottom: 1px solid #f0f0f0;
         }
         .history-date { font-size: 16px; color: #555; }
-        .delete-icon { font-size: 18px; opacity: 0.4; cursor: pointer; padding: 5px; }
-        .delete-icon:hover { opacity: 1; color: red; }
+        
+        /* Make Delete Icon easier to tap */
+        .delete-icon { 
+            font-size: 20px; 
+            opacity: 0.5; 
+            cursor: pointer; 
+            padding: 10px; 
+            margin-right: -10px;
+        }
+        .delete-icon:active { opacity: 1; transform: scale(1.2); }
 
     </style>
 </head>
@@ -152,10 +176,10 @@
             <input type="date" class="hidden-input" id="datePicker" onchange="handleDateChange()">
         </div>
 
-        <div class="status-card" id="statusCard" onclick="toggleAttendance()">
+        <button class="status-card" id="statusCard" onclick="toggleAttendance()">
             <div class="check-icon">✓</div>
             <span class="status-text" id="statusText">Mark Present</span>
-        </div>
+        </button>
 
         <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
 
@@ -181,14 +205,11 @@
         </div>
 
         <div class="section-title">History</div>
-        <div class="history-list" id="historyList">
-            </div>
+        <div class="history-list" id="historyList"></div>
 
     </div>
 
     <script>
-        // --- 1. INITIALIZATION ---
-        // Load data from storage OR start with empty list
         let attendanceData = JSON.parse(localStorage.getItem('cookData')) || [];
         
         const datePicker = document.getElementById('datePicker');
@@ -196,33 +217,28 @@
         const statusCard = document.getElementById('statusCard');
         const statusText = document.getElementById('statusText');
 
-        // Set Today's Date
+        // Init
         const today = new Date().toISOString().split('T')[0];
         datePicker.value = today;
 
-        // Populate Month Dropdown (Last 12 Months)
         populateMonthDropdown();
-
-        // Initial Render
         updateDashboard();
 
-        // --- 2. CORE LOGIC ---
+        // --- CORE FUNCTIONS ---
 
         function toggleAttendance() {
+            // Small vibration for feedback (Android only)
+            if (navigator.vibrate) navigator.vibrate(50);
+
             const selectedDate = datePicker.value;
-            
-            // Check if date exists in array
             const index = attendanceData.indexOf(selectedDate);
 
             if (index > -1) {
-                // If exists, REMOVE it (Toggle Off)
-                attendanceData.splice(index, 1);
+                attendanceData.splice(index, 1); // Remove
             } else {
-                // If not exists, ADD it (Toggle On)
-                attendanceData.push(selectedDate);
+                attendanceData.push(selectedDate); // Add
             }
 
-            // Save and Update
             saveData();
             updateDashboard();
         }
@@ -239,27 +255,20 @@
             localStorage.setItem('cookData', JSON.stringify(attendanceData));
         }
 
-        // --- 3. UI UPDATES ---
+        // --- UI UPDATES ---
 
-        function handleDateChange() {
-            updateDashboard();
-        }
-
-        function handleMonthChange() {
-            updateDashboard();
-        }
+        function handleDateChange() { updateDashboard(); }
+        function handleMonthChange() { updateDashboard(); }
 
         function updateDashboard() {
             const selectedDate = datePicker.value;
-            const selectedMonthVal = monthPicker.value; // e.g., "2025-11"
+            const selectedMonthVal = monthPicker.value; 
 
-            // A. UPDATE HEADER TEXTS
+            // Text Updates
             document.getElementById('displayDate').innerText = formatDateReadable(selectedDate);
-            
-            const monthText = monthPicker.options[monthPicker.selectedIndex].text;
-            document.getElementById('displayMonth').innerText = monthText;
+            document.getElementById('displayMonth').innerText = monthPicker.options[monthPicker.selectedIndex].text;
 
-            // B. UPDATE GREEN BOX STATE
+            // Toggle Box Visuals
             if (attendanceData.includes(selectedDate)) {
                 statusCard.classList.add('active');
                 statusText.innerText = "Cook Came Today";
@@ -268,29 +277,21 @@
                 statusText.innerText = "Mark Present";
             }
 
-            // C. FILTER DATA FOR SELECTED MONTH
-            // Filter dates that start with the selected YYYY-MM
+            // Calculate Monthly Stats
             const monthVisits = attendanceData.filter(date => date.startsWith(selectedMonthVal));
-            
-            // Sort them (newest first)
             monthVisits.sort((a, b) => b.localeCompare(a));
 
-            // D. UPDATE COUNTS
-            const count = monthVisits.length;
-            const bill = count * 100;
+            document.getElementById('totalVisits').innerText = monthVisits.length;
+            document.getElementById('totalBill').innerText = monthVisits.length * 100;
 
-            document.getElementById('totalVisits').innerText = count;
-            document.getElementById('totalBill').innerText = bill;
-
-            // E. UPDATE HISTORY LIST
+            // Render List
             const historyList = document.getElementById('historyList');
-            historyList.innerHTML = ""; // Clear list
+            historyList.innerHTML = ""; 
 
             monthVisits.forEach(date => {
-                const readableDate = formatDateReadable(date);
                 const itemHTML = `
                     <div class="history-item">
-                        <span class="history-date">${readableDate}</span>
+                        <span class="history-date">${formatDateReadable(date)}</span>
                         <span class="delete-icon" onclick="deleteEntry('${date}')">🗑️</span>
                     </div>
                 `;
@@ -298,16 +299,12 @@
             });
         }
 
-        // --- 4. HELPERS ---
-
         function populateMonthDropdown() {
             const current = new Date();
-            // Generate last 6 months options
-            for (let i = 0; i < 6; i++) {
+            // Generate last 12 months
+            for (let i = 0; i < 12; i++) {
                 const d = new Date(current.getFullYear(), current.getMonth() - i, 1);
-                // Value format: "2025-11" (Easy to filter)
                 const value = d.toISOString().slice(0, 7); 
-                // Text format: "November 2025"
                 const text = d.toLocaleString('default', { month: 'long', year: 'numeric' });
                 
                 const option = document.createElement('option');
@@ -315,7 +312,6 @@
                 option.text = text;
                 monthPicker.appendChild(option);
             }
-            // Select current month by default
             monthPicker.selectedIndex = 0;
         }
 
@@ -323,7 +319,6 @@
             const d = new Date(dateString);
             return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
         }
-
     </script>
 
 </body>
